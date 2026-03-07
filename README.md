@@ -78,12 +78,12 @@ The following clips demonstrate the seamless workflow for protecting and verifyi
 ### 1. Signing Flow
 Upload your file, enter your secret key, and the system generates a signed version instantly.
 
-https://github.com/roloport/WaveSign/sign.mp4
+https://github.com/roloport/WaveSign/assets/sign.mp4
 
 ### 2. Verification Flow
 Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
 
-https://github.com/roloport/WaveSign/verify.mp4
+https://github.com/roloport/WaveSign/assets/verify.mp4
 
 ### 1. Signing Flow
 Upload your file, enter your secret key, and the system generates a signed version instantly.
