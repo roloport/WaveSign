@@ -80,7 +80,7 @@ Upload your file, enter your secret key, and the system generates a signed versi
 
 ![Signing Flow](assets/sign_gif.gif)
 
-<video src="assets/sign.mp4" autoplay loop muted playsinline width="100%"></video>
+<video src="https://github.com/roloport/WaveSign/assets/sign.mp4" controls width="100%"></video>
 
 ### 2. Verification Flow
 Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
