@@ -8,7 +8,7 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 
 ## Try It
 
-🔗 **[wavesign.streamlit.app](https://wavesign.streamlit.app)** *(replace with your live URL)*
+🔗 **[wavesign.streamlit.app](https://phasesig-rbek68ksvn9aty6wize8wo.streamlit.app/)** *(replace with your live URL)*
 
 ---
 
