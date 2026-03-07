@@ -85,6 +85,16 @@ Confirm the integrity and origin of any signed file by uploading it with the cor
 
 https://github.com/roloport/WaveSign/verify.mp4
 
+### 1. Signing Flow
+Upload your file, enter your secret key, and the system generates a signed version instantly.
+
+<video src="/sign.mp4" autoplay loop muted playsinline width="100%"></video>
+
+### 2. Verification Flow
+Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
+
+<video src="https://github.com/roloport/WaveSign/verify.mp4" autoplay loop muted playsinline width="100%"></video>
+
 ---
 
 
