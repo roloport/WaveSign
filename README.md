@@ -8,7 +8,7 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 
 ## Try It
 
-🔗 **[wavesign.streamlit.app](https://phasesig-rbek68ksvn9aty6wize8wo.streamlit.app/)** *(replace with your live URL)*
+🔗 [wavesign.streamlit.app](https://phasesig-rbek68ksvn9aty6wize8wo.streamlit.app/)
 
 ---
 
@@ -23,28 +23,6 @@ Supports PNG, JPG, WEBP, and multi-page PDF.
 
 ---
 
-## Run Locally
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-> **Note:** PDF support requires `poppler`. Install via `brew install poppler` (macOS) or `apt install poppler-utils` (Linux).
-
----
-
-## Deploy to Streamlit Cloud
-
-1. Push this repo to GitHub
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect repo → select `app.py` → Deploy
-4. Add a `packages.txt` file with `poppler-utils` for PDF support
-
-Live in ~2 minutes.
-
----
-
 ## Use Cases
 
 - Contracts and documents — detect any edit after signing
@@ -54,11 +32,10 @@ Live in ~2 minutes.
 
 ---
 
-# WaveSign
-
+# Demo
 WaveSign uses advanced **plane wave diffraction phase-shift technology** to embed cryptographic signatures into images and documents. The signature is mathematically integrated into the file's phase structure, making it completely invisible to the naked eye while ensuring robust authenticity.
 
-## 📸 Invisible Signature Showcase
+## 📸 Invisible Signature
 
 The primary advantage of WaveSign is its non-destructive nature. The signature does not degrade image quality or affect the readability of document text.
 
