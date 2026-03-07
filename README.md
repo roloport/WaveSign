@@ -54,6 +54,42 @@ Live in ~2 minutes.
 
 ---
 
+# WaveSign
+
+WaveSign uses advanced **plane wave diffraction phase-shift technology** to embed cryptographic signatures into images and documents. The signature is mathematically integrated into the file's phase structure, making it completely invisible to the naked eye while ensuring robust authenticity.
+
+## 📸 Invisible Signature Showcase
+
+The primary advantage of WaveSign is its non-destructive nature. The signature does not degrade image quality or affect the readability of document text.
+
+| Original (Before) | Signed (After) |
+| :---: | :---: |
+| ![Original Image](ppl.jpg) | ![Signed Image](signed_ppl.png) |
+
+**Key Benefits:**
+* **Invisible Protection:** No visible watermarks or artifacts.
+* **Zero Quality Loss:** Ideal for high-resolution images and professional photography.
+* **Text Integrity:** Document readability remains 100% intact for PDFs and scans.
+
+## 🎥 User Guide
+
+The following clips demonstrate the seamless workflow for protecting and verifying your files.
+
+### 1. Signing Flow
+Upload your file, enter your secret key, and the system generates a signed version instantly.
+
+https://github.com/roloport/WaveSign/assets/sign.mp4
+
+### 2. Verification Flow
+Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
+
+https://github.com/roloport/WaveSign/assets/verify.mp4
+
+---
+
+
+
+
 ## License
 
 MIT
