@@ -78,7 +78,7 @@ The following clips demonstrate the seamless workflow for protecting and verifyi
 ### 1. Signing Flow
 Upload your file, enter your secret key, and the system generates a signed version instantly.
 
-![Signing Flow](assets/sign.gif)
+![Signing Flow](assets/sign_gif.gif)
 
 <video src="assets/sign.mp4" autoplay loop muted playsinline width="100%"></video>
 
