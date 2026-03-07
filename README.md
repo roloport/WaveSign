@@ -85,7 +85,7 @@ Upload your file, enter your secret key, and the system generates a signed versi
 ### 2. Verification Flow
 Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
 
-<video src="assets/verify.mp4" autoplay loop muted playsinline width="100%"></video>
+![Signing Flow](assets/verify.gif)
 
 ---
 
