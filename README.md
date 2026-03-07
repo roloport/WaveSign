@@ -45,16 +45,6 @@ Live in ~2 minutes.
 
 ---
 
-## Files
-
-| File | Purpose |
-|---|---|
-| `app.py` | Streamlit UI |
-| `requirements.txt` | Python dependencies |
-| `packages.txt` | System dependencies (poppler for PDF) |
-
----
-
 ## Use Cases
 
 - Contracts and documents — detect any edit after signing
