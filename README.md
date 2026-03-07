@@ -64,7 +64,7 @@ The primary advantage of WaveSign is its non-destructive nature. The signature d
 
 | Original (Before) | Signed (After) |
 | :---: | :---: |
-| ![Original Image](ppl.jpg) | ![Signed Image](signed_ppl.png) |
+| ![Original Image](assets/ppl.jpg) | ![Signed Image](assets/signed_ppl.png) |
 
 **Key Benefits:**
 * **Invisible Protection:** No visible watermarks or artifacts.
@@ -88,16 +88,14 @@ https://github.com/roloport/WaveSign/verify.mp4
 ### 1. Signing Flow
 Upload your file, enter your secret key, and the system generates a signed version instantly.
 
-<video src="/sign.mp4" autoplay loop muted playsinline width="100%"></video>
+<video src="assets/sign.mp4" autoplay loop muted playsinline width="100%"></video>
 
 ### 2. Verification Flow
 Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
 
-<video src="https://github.com/roloport/WaveSign/verify.mp4" autoplay loop muted playsinline width="100%"></video>
+<video src="assets/verify.mp4" autoplay loop muted playsinline width="100%"></video>
 
 ---
-
-
 
 
 ## License
