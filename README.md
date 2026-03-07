@@ -1,4 +1,4 @@
-# WaveSign 🌊
+# WaveSign 
 
 **Invisible file signing and tamper detection for images and documents.**
 
