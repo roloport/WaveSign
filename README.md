@@ -41,7 +41,8 @@ The primary advantage of WaveSign is its non-destructive nature. The signature d
 
 | Original (Before) | Signed (After) |
 | :---: | :---: |
-| ![Original Image](assets/ppl.jpg) | ![Signed Image](assets/signed_ppl.png) |
+| <img src="assets/ppl.jpg" width="70%"/> | <img src="assets/signed_ppl.png" width="70%"/> |
+
 
 **Key Benefits:**
 * **Invisible Protection:** No visible watermarks or artifacts.
@@ -55,14 +56,12 @@ The following clips demonstrate the seamless workflow for protecting and verifyi
 ### 1. Signing Flow
 Upload your file, enter your secret key, and the system generates a signed version instantly.
 
-![Signing Flow](assets/sign.gif)
-
-<video src="https://github.com/roloport/WaveSign/assets/sign.mp4" controls width="100%"></video>
+<img src="assets/sign.gif" width="50%"/>
 
 ### 2. Verification Flow
 Confirm the integrity and origin of any signed file by uploading it with the corresponding secret key.
 
-![Signing Flow](assets/verify.gif)
+<img src="assets/verify.gif" width="50%"/>
 
 ---
 
