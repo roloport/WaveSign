@@ -39,10 +39,13 @@ WaveSign uses advanced **plane wave diffraction phase-shift technology** to embe
 
 The primary advantage of WaveSign is its non-destructive nature. The signature does not degrade image quality or affect the readability of document text.
 
-| Original (Before) | Signed (After) |
+| Original Image (Before) | Signed Image (After) |
 | :---: | :---: |
 | <img src="assets/ppl.jpg" width="70%"/> | <img src="assets/signed_ppl.png" width="70%"/> |
 
+| Original Document (Before) | Signed Document (After) |
+| :---: | :---: |
+| <img src="assets/1page_contract.png" width="70%"/> | <img src="assets/wavesign_1page_contract.png" width="70%"/> |
 
 **Key Benefits:**
 * **Invisible Protection:** No visible watermarks or artifacts.
