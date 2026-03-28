@@ -8,7 +8,10 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 
 ## Try It
 
-🔗 [Live Demo](https://phasesig-rbek68ksvn9aty6wize8wo.streamlit.app/)
+| | |
+|---|---|
+| 🖥️ **Live Demo** | [huggingface.co/spaces/roloport/WaveSign](https://huggingface.co/spaces/roloport/WaveSign) |
+| ⚡ **API** | Available for workflow integration — see [API Access](#api-access) below |
 
 ---
 
@@ -81,6 +84,77 @@ The signed file is visually identical to the original.
 **Verification** — Upload signed file + verification file + key → instant result.
 
 <img src="assets/verify.gif" width="50%"/>
+
+---
+
+## API Access
+
+WaveSign is available as a REST API for workflow and application integration.
+
+**Endpoints**
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/sign` | Sign an image or PDF |
+| `POST` | `/verify` | Verify a signed file |
+| `GET` | `/health` | Service status |
+
+**Request format** — multipart/form-data
+
+```
+POST /sign
+  file        your image or PDF
+  key         your secret passphrase
+  Authorization: Bearer <your_api_key>
+
+POST /verify
+  file        the signed file
+  sig_file    the .json verification file
+  key         your secret passphrase
+  Authorization: Bearer <your_api_key>
+```
+
+**Quick example**
+
+```bash
+# Sign
+curl -X POST https://roloport-wavesign-api.hf.space/sign \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@contract.pdf" \
+  -F "key=your-secret" \
+  --output signed_package.zip
+
+# Verify
+curl -X POST https://roloport-wavesign-api.hf.space/verify \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -F "file=@signed_contract.pdf" \
+  -F "sig_file=@contract_sig.json" \
+  -F "key=your-secret"
+```
+
+**Python**
+
+```python
+import requests
+
+API = "https://roloport-wavesign-api.hf.space"
+HEADERS = {"Authorization": "Bearer YOUR_API_KEY"}
+
+# Sign
+r = requests.post(f"{API}/sign", headers=HEADERS,
+    files={"file": open("contract.pdf", "rb")},
+    data={"key": "your-secret"})
+open("signed.zip", "wb").write(r.content)
+
+# Verify
+r = requests.post(f"{API}/verify", headers=HEADERS,
+    files={"file": open("signed.pdf", "rb"),
+           "sig_file": open("sig.json", "rb")},
+    data={"key": "your-secret"})
+print(r.json())  # {"is_valid": true, "verdict": "AUTHENTIC", ...}
+```
+
+To request API access: rose.huiluo@gmail.com
 
 ---
 
