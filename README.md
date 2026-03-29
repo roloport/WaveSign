@@ -10,7 +10,7 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 
 | | |
 |---|---|
-| 🖥️ **Live Demo** | [huggingface.co/spaces/roloport/WaveSign](https://huggingface.co/spaces/roloport/WaveSign) |
+| 🖥️ **Live Demo** | [huggingface.co/spaces/roseluo/WaveSign](https://huggingface.co/spaces/roseluo/WaveSign) |
 | ⚡ **API** | Available for workflow integration — see [API Access](#api-access) below |
 
 ---
@@ -118,14 +118,14 @@ POST /verify
 
 ```bash
 # Sign
-curl -X POST https://roloport-wavesign-api.hf.space/sign \
+curl -X POST https://roseluo-wavesign-api.hf.space/sign \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@contract.pdf" \
   -F "key=your-secret" \
   --output signed_package.zip
 
 # Verify
-curl -X POST https://roloport-wavesign-api.hf.space/verify \
+curl -X POST https://roseluo-wavesign-api.hf.space/verify \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "file=@signed_contract.pdf" \
   -F "sig_file=@contract_sig.json" \
@@ -137,7 +137,7 @@ curl -X POST https://roloport-wavesign-api.hf.space/verify \
 ```python
 import requests
 
-API = "https://roloport-wavesign-api.hf.space"
+API = "https://roseluo-wavesign-api.hf.space"
 HEADERS = {"Authorization": "Bearer YOUR_API_KEY"}
 
 # Sign
