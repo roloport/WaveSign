@@ -11,7 +11,7 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 | | |
 |---|---|
 | 🖥️ **Live Demo** | [huggingface.co/spaces/roseluo/WaveSign](https://huggingface.co/spaces/roseluo/WaveSign) |
-| ⚡ **API** | Available for workflow integration — see [API Access](#api-access) below |
+| ⚡ **API** | Live — [roseluo-wavesign-api.hf.space](https://roseluo-wavesign-api.hf.space) · see [API Access](#api-access) |
 
 ---
 
@@ -95,6 +95,7 @@ WaveSign is available as a REST API for workflow and application integration.
 
 | Method | Endpoint | Description |
 |---|---|---|
+| `GET` | `/` | API info and endpoint directory |
 | `POST` | `/sign` | Sign an image or PDF |
 | `POST` | `/verify` | Verify a signed file |
 | `GET` | `/health` | Service status |
