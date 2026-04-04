@@ -1,0 +1,23 @@
+# Source — never publish
+core.py
+core_img.py
+
+# Build artifacts
+build/
+__pycache__/
+*.pyc
+*.pyo
+*.c
+*.o
+
+# Raw test data
+api_benchmark_raw.json
+evaluation_raw.json
+scalability_raw.json
+
+# Keep the compiled binary tracked
+!core.cpython-311-x86_64-linux-gnu.so
+!docker_api/core.cpython-311-x86_64-linux-gnu.so
+
+# Environment
+.env

@@ -17,7 +17,7 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 
 ## Evaluation Results
 
-Tested across **900 cases, 22 scenarios**. Full results: [EVALUATION.md](./EVALUATION.md)
+Tested across **900 cases, 22 scenarios**. Full results: [EVALUATION.md](./EVALUATION.md) · [SCALABILITY.md](./SCALABILITY.md)
 
 | Metric | Result |
 |---|---|
