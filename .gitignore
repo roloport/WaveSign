@@ -21,3 +21,4 @@ scalability_raw.json
 
 # Environment
 .env
+demo_output/

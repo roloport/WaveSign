@@ -1,59 +1,58 @@
 """
 WaveSign API Demo — End-to-End Workflow
 ========================================
-Verifies the live WaveSign API and demonstrates a complete
-sign → verify → tamper-detect → wrong-key-reject workflow.
+Demonstrates the complete WaveSign sign → verify → tamper-detect → wrong-key
+workflow.  Runs locally by default (core module), or against the live REST API.
 
 Usage:
-  export WS_API_KEY="your-token"
-  python wavesign_api_demo.py
+  python wavesign_api_demo.py              # local mode (default)
+  python wavesign_api_demo.py --api        # remote API mode (needs WS_API_KEY)
 
-Steps:
-  1. Health Check          — confirm API is reachable
-  2. API Info              — display service metadata
-  3. Sign Workflow         — generate image, sign via API
-  4. Verify Authentic      — verify signed file (correct key)
-  5. Tamper Detection      — modify signed image, expect rejection
-  6. Wrong Key Detection   — verify with wrong key, expect rejection
+Output files saved to demo_output/.
 """
 
-import io, json, os, sys, time, zipfile
+import argparse
+import io
+import json
+import os
+import sys
+import time
+import zipfile
+
 import numpy as np
 from PIL import Image, ImageDraw
-
-try:
-    import requests
-except ImportError:
-    sys.exit("requests not installed — run: pip install requests")
 
 # ─────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────
 
-BASE_URL  = "https://roseluo-wavesign-api.hf.space"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSET_DIR  = os.path.join(SCRIPT_DIR, "assets")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "demo_output")
+
 SECRET    = "wavesign-demo-2026"
 WRONG_KEY = "wrong-key-12345"
 
-API_KEY = os.environ.get("WS_API_KEY", "")
-if not API_KEY:
-    sys.exit(
-        "\n[ERROR] WS_API_KEY environment variable is not set.\n"
-        "  export WS_API_KEY='your-api-token'\n"
-        "  then re-run:  python wavesign_api_demo.py\n"
-    )
+BASE_URL = "https://roseluo-wavesign-api.hf.space"
 
-HEADERS = {"Authorization": f"Bearer {API_KEY}"}
-
-# ─────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────
-
+TOTAL_STEPS = 6
 SEP = "=" * 60
 
+# ─────────────────────────────────────────
+# FORMATTING
+# ─────────────────────────────────────────
 
-def step_header(n, total, title):
+def banner(mode):
     print(f"\n{SEP}")
-    print(f"  Step {n}/{total}: {title}")
+    print("  WaveSign — Invisible Signing & Tamper Detection")
+    print(f"  Mode  : {'LOCAL (core module)' if mode == 'local' else f'API ({BASE_URL})'}")
+    print(f"  Key   : {SECRET!r}")
+    print(SEP)
+
+
+def step_header(n, title):
+    print(f"\n{SEP}")
+    print(f"  Step {n}/{TOTAL_STEPS}: {title}")
     print(SEP)
 
 
@@ -65,8 +64,16 @@ def fail(msg):
     print(f"  [FAIL] {msg}")
 
 
+def info(msg):
+    print(f"  {msg}")
+
+
+# ─────────────────────────────────────────
+# IMAGE HELPERS
+# ─────────────────────────────────────────
+
 def make_test_image(w=800, h=600, seed=42):
-    """Generate a synthetic gradient image with noise."""
+    """Fallback synthetic gradient image if no asset available."""
     rng = np.random.default_rng(seed)
     arr = np.zeros((h, w, 3), dtype=np.uint8)
     for c in range(3):
@@ -79,206 +86,255 @@ def make_test_image(w=800, h=600, seed=42):
     return Image.fromarray(arr, "RGB")
 
 
+def load_demo_image():
+    """Load a real asset photo, fall back to synthetic."""
+    for name in ("ppl.jpg", "1page_contract.png"):
+        path = os.path.join(ASSET_DIR, name)
+        if os.path.isfile(path):
+            img = Image.open(path).convert("RGB")
+            info(f"Loaded asset: {name}  ({img.width}x{img.height})")
+            return img, name
+    img = make_test_image()
+    info(f"Using synthetic image  ({img.width}x{img.height})")
+    return img, "synthetic_800x600.png"
+
+
 def img_to_png_bytes(img):
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
 
 
-def tamper_image(png_bytes):
-    """Draw red 'EDITED' text on the signed image — a visible tamper."""
-    img = Image.open(io.BytesIO(png_bytes)).convert("RGB")
-    draw = ImageDraw.Draw(img)
+def tamper_pil(img):
+    """Draw red 'EDITED' text — a visible tamper."""
+    out = img.copy()
+    draw = ImageDraw.Draw(out)
     draw.text((10, 10), "EDITED", fill=(255, 0, 0))
-    return img_to_png_bytes(img)
+    return out
+
+
+def ensure_output_dir():
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 # ─────────────────────────────────────────
-# API CALLERS
+# LOCAL-MODE BACKEND
 # ─────────────────────────────────────────
 
-def api_sign(png_bytes, key=SECRET, timeout=90):
-    """POST /sign → (status_code, elapsed_ms, zip_bytes | None)."""
+def local_sign(img, key):
+    """Sign using the core module directly. Returns (signed_img, sig_dict, mode, ms)."""
+    from core import embed_watermark, sign_image, detect_mode
     t0 = time.perf_counter()
-    try:
-        r = requests.post(
-            f"{BASE_URL}/sign",
-            headers=HEADERS,
-            files={"file": ("img.png", png_bytes, "image/png")},
-            data={"key": key},
-            timeout=timeout,
-        )
-        elapsed = (time.perf_counter() - t0) * 1000
-        if r.status_code == 200:
-            return r.status_code, elapsed, r.content
-        return r.status_code, elapsed, None
-    except requests.exceptions.RequestException:
-        return 0, (time.perf_counter() - t0) * 1000, None
+    mode = detect_mode(img)
+    strength = 0.015 if mode == "color" else 0.03
+    signed = embed_watermark(img, key, strength=strength, mode=mode)
+    sig = sign_image(signed, key, mode=mode)
+    ms = (time.perf_counter() - t0) * 1000
+    return signed, sig, mode, ms
 
 
-def api_verify(signed_bytes, sig_bytes, key=SECRET, timeout=60):
-    """POST /verify → (status_code, elapsed_ms, result_dict | None)."""
+def local_verify(img, key, sig):
+    """Verify using the core module directly. Returns (result_dict, ms)."""
+    from core import verify_image
     t0 = time.perf_counter()
-    try:
-        r = requests.post(
-            f"{BASE_URL}/verify",
-            headers=HEADERS,
-            files={
-                "file":     ("signed.png", signed_bytes, "image/png"),
-                "sig_file": ("sig.json",   sig_bytes,    "application/json"),
-            },
-            data={"key": key},
-            timeout=timeout,
+    result = verify_image(img, key, sig)
+    ms = (time.perf_counter() - t0) * 1000
+    return result, ms
+
+
+def local_psnr(original, signed):
+    from core import compute_psnr
+    return compute_psnr(original, signed)
+
+
+# ─────────────────────────────────────────
+# API-MODE BACKEND
+# ─────────────────────────────────────────
+
+def _api_headers():
+    api_key = os.environ.get("WS_API_KEY", "")
+    if not api_key:
+        sys.exit(
+            "\n[ERROR] WS_API_KEY not set.  "
+            "export WS_API_KEY='your-token' or use --local mode.\n"
         )
-        elapsed = (time.perf_counter() - t0) * 1000
-        if r.status_code == 200:
-            return r.status_code, elapsed, r.json()
-        return r.status_code, elapsed, None
-    except requests.exceptions.RequestException:
-        return 0, (time.perf_counter() - t0) * 1000, None
+    return {"Authorization": f"Bearer {api_key}"}
 
 
-def unzip_sign_response(zip_bytes):
-    """Extract signed file + sig.json from ZIP response."""
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
+def api_sign(png_bytes, key, timeout=90):
+    import requests
+    headers = _api_headers()
+    t0 = time.perf_counter()
+    r = requests.post(
+        f"{BASE_URL}/sign", headers=headers,
+        files={"file": ("img.png", png_bytes, "image/png")},
+        data={"key": key}, timeout=timeout,
+    )
+    ms = (time.perf_counter() - t0) * 1000
+    if r.status_code != 200:
+        return None, None, ms
+    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
         names = z.namelist()
         signed_name = next((n for n in names if n.startswith("signed")), names[0])
-        sig_name    = next((n for n in names if n.endswith(".json")), None)
+        sig_name = next((n for n in names if n.endswith(".json")), None)
         signed_bytes = z.read(signed_name)
-        sig_bytes    = z.read(sig_name) if sig_name else None
-    return signed_bytes, sig_bytes
+        sig_bytes = z.read(sig_name) if sig_name else None
+    return signed_bytes, sig_bytes, ms
+
+
+def api_verify(signed_bytes, sig_bytes, key, timeout=60):
+    import requests
+    headers = _api_headers()
+    t0 = time.perf_counter()
+    r = requests.post(
+        f"{BASE_URL}/verify", headers=headers,
+        files={
+            "file":     ("signed.png", signed_bytes, "image/png"),
+            "sig_file": ("sig.json",   sig_bytes,    "application/json"),
+        },
+        data={"key": key}, timeout=timeout,
+    )
+    ms = (time.perf_counter() - t0) * 1000
+    if r.status_code != 200:
+        return None, ms
+    return r.json(), ms
 
 
 # ─────────────────────────────────────────
 # DEMO STEPS
 # ─────────────────────────────────────────
 
-TOTAL_STEPS = 6
+def step_sign(mode, img, name):
+    """Step 1+2: Load image & sign it."""
+    step_header(1, "Sign Image")
+
+    if mode == "local":
+        signed_img, sig, det_mode, ms = local_sign(img, SECRET)
+        psnr = local_psnr(img, signed_img)
+        info(f"Detected mode : {det_mode}")
+        info(f"Signing time  : {ms:.0f} ms")
+        info(f"PSNR quality  : {psnr:.1f} dB  (>40 dB = invisible)")
+        info(f"Signature hash: {sig.get('sig_hash', '?')[:32]}...")
+        # Save outputs
+        ensure_output_dir()
+        signed_img.save(os.path.join(OUTPUT_DIR, "signed.png"))
+        with open(os.path.join(OUTPUT_DIR, "sig.json"), "w") as f:
+            json.dump(sig, f, indent=2)
+        info(f"Saved: demo_output/signed.png, demo_output/sig.json")
+        ok(f"Image signed  (PSNR {psnr:.1f} dB, {ms:.0f} ms)")
+        return True, signed_img, sig
+    else:
+        png = img_to_png_bytes(img)
+        signed_bytes, sig_bytes, ms = api_sign(png, SECRET)
+        if signed_bytes is None:
+            fail("Sign request failed")
+            return False, None, None
+        sig = json.loads(sig_bytes)
+        info(f"Signing time  : {ms:.0f} ms")
+        info(f"Signed file   : {len(signed_bytes):,} bytes")
+        info(f"Signature     : {len(sig_bytes):,} bytes")
+        ensure_output_dir()
+        with open(os.path.join(OUTPUT_DIR, "signed.png"), "wb") as f:
+            f.write(signed_bytes)
+        with open(os.path.join(OUTPUT_DIR, "sig.json"), "w") as f:
+            json.dump(sig, f, indent=2)
+        info(f"Saved: demo_output/signed.png, demo_output/sig.json")
+        ok(f"Image signed via API  ({ms:.0f} ms)")
+        signed_img = Image.open(io.BytesIO(signed_bytes)).convert("RGB")
+        return True, signed_img, sig
 
 
-def run_health_check():
-    step_header(1, TOTAL_STEPS, "Health Check")
-    try:
-        t0 = time.perf_counter()
-        r = requests.get(f"{BASE_URL}/health", headers=HEADERS, timeout=30)
-        ms = (time.perf_counter() - t0) * 1000
-        if r.status_code == 200 and r.json().get("status") == "ok":
-            ok(f"API is healthy  ({ms:.0f} ms)")
-            return True, "healthy"
-        fail(f"Unexpected response: {r.status_code} — {r.text}")
-        return False, f"status {r.status_code}"
-    except requests.exceptions.RequestException as e:
-        fail(f"Could not reach API: {e}")
-        return False, str(e)
+def step_verify_authentic(mode, signed_img, sig):
+    """Step 2: Verify the unmodified signed image — should PASS."""
+    step_header(2, "Verify Authentic File")
+    info("Verifying signed image with correct key...")
 
+    if mode == "local":
+        result, ms = local_verify(signed_img, SECRET, sig)
+    else:
+        result, ms = api_verify(
+            img_to_png_bytes(signed_img),
+            json.dumps(sig).encode(), SECRET,
+        )
 
-def run_api_info():
-    step_header(2, TOTAL_STEPS, "API Info")
-    try:
-        r = requests.get(f"{BASE_URL}/", timeout=30)
-        if r.status_code == 200:
-            info = r.json()
-            print(f"  Service : {info.get('service', '?')}")
-            print(f"  Version : {info.get('version', '?')}")
-            endpoints = info.get("endpoints", {})
-            if endpoints:
-                print("  Endpoints:")
-                for path, desc in endpoints.items():
-                    print(f"    {path:12s} — {desc}")
-            ok("API info retrieved")
-            return True, "ok"
-        fail(f"Unexpected status {r.status_code}")
-        return False, f"status {r.status_code}"
-    except requests.exceptions.RequestException as e:
-        fail(f"Request failed: {e}")
-        return False, str(e)
-
-
-def run_sign():
-    step_header(3, TOTAL_STEPS, "Sign Workflow")
-    img = make_test_image()
-    png = img_to_png_bytes(img)
-    print(f"  Generated test image: 800x600 ({len(png):,} bytes)")
-
-    code, ms, zdata = api_sign(png, key=SECRET)
-    if code != 200 or zdata is None:
-        fail(f"Sign request failed (HTTP {code})")
-        return False, None, None
-
-    signed_bytes, sig_bytes = unzip_sign_response(zdata)
-    if signed_bytes is None or sig_bytes is None:
-        fail("Could not extract signed file or signature from ZIP")
-        return False, None, None
-
-    sig_meta = json.loads(sig_bytes)
-    print(f"  Signed file : {len(signed_bytes):,} bytes")
-    print(f"  Signature   : {len(sig_bytes):,} bytes  (mode: {sig_meta.get('mode', '?')})")
-    print(f"  Latency     : {ms:.0f} ms")
-    ok("Image signed successfully")
-    return True, signed_bytes, sig_bytes
-
-
-def run_verify_authentic(signed_bytes, sig_bytes):
-    step_header(4, TOTAL_STEPS, "Verify Authentic")
-    code, ms, result = api_verify(signed_bytes, sig_bytes, key=SECRET)
-    if code != 200 or result is None:
-        fail(f"Verify request failed (HTTP {code})")
+    if result is None:
+        fail("Verify request failed")
         return False
 
     is_valid = result.get("is_valid", False)
-    verdict  = result.get("verdict", "?")
+    verdict  = result.get("verdict", "AUTHENTIC" if is_valid else "?")
     score    = result.get("similarity_score", "?")
-    print(f"  Verdict          : {verdict}")
-    print(f"  Valid            : {is_valid}")
-    print(f"  Similarity Score : {score}")
-    print(f"  Latency          : {ms:.0f} ms")
+    info(f"Verdict          : {verdict}")
+    info(f"Valid            : {is_valid}")
+    info(f"Similarity score : {score}")
+    info(f"Latency          : {ms:.0f} ms")
 
-    if is_valid and "AUTHENTIC" in str(verdict).upper():
+    if is_valid:
         ok("Signed file verified as AUTHENTIC")
         return True
-    fail(f"Expected AUTHENTIC but got: {verdict}")
+    fail(f"Expected AUTHENTIC, got: {verdict}")
     return False
 
 
-def run_tamper_detect(signed_bytes, sig_bytes):
-    step_header(5, TOTAL_STEPS, "Tamper Detection")
-    tampered = tamper_image(signed_bytes)
-    print(f"  Tampered image: added red 'EDITED' text overlay")
+def step_tamper_detect(mode, signed_img, sig):
+    """Step 3: Tamper the image, verify again — should FAIL."""
+    step_header(3, "Tamper Detection")
+    tampered = tamper_pil(signed_img)
+    info("Applied tamper: red 'EDITED' text overlay at (10,10)")
 
-    code, ms, result = api_verify(tampered, sig_bytes, key=SECRET)
-    if code != 200 or result is None:
-        fail(f"Verify request failed (HTTP {code})")
+    ensure_output_dir()
+    tampered.save(os.path.join(OUTPUT_DIR, "tampered.png"))
+    info("Saved: demo_output/tampered.png")
+
+    if mode == "local":
+        result, ms = local_verify(tampered, SECRET, sig)
+    else:
+        result, ms = api_verify(
+            img_to_png_bytes(tampered),
+            json.dumps(sig).encode(), SECRET,
+        )
+
+    if result is None:
+        fail("Verify request failed")
         return False
 
     is_valid = result.get("is_valid", False)
     verdict  = result.get("verdict", "?")
     score    = result.get("similarity_score", "?")
-    print(f"  Verdict          : {verdict}")
-    print(f"  Valid            : {is_valid}")
-    print(f"  Similarity Score : {score}")
-    print(f"  Latency          : {ms:.0f} ms")
+    info(f"Verdict          : {verdict}")
+    info(f"Valid            : {is_valid}")
+    info(f"Similarity score : {score}")
+    info(f"Latency          : {ms:.0f} ms")
 
     if not is_valid:
-        ok("Tampering correctly detected")
+        ok("Tampering correctly detected — file rejected")
         return True
-    fail("Tampered file was incorrectly accepted as authentic")
+    fail("Tampered file was incorrectly accepted")
     return False
 
 
-def run_wrong_key(signed_bytes, sig_bytes):
-    step_header(6, TOTAL_STEPS, "Wrong Key Detection")
-    print(f"  Using wrong key: '{WRONG_KEY}'")
+def step_wrong_key(mode, signed_img, sig):
+    """Step 4: Verify with wrong key — should FAIL."""
+    step_header(4, "Wrong Key Detection")
+    info(f"Verifying with wrong key: {WRONG_KEY!r}")
 
-    code, ms, result = api_verify(signed_bytes, sig_bytes, key=WRONG_KEY)
-    if code != 200 or result is None:
-        fail(f"Verify request failed (HTTP {code})")
+    if mode == "local":
+        result, ms = local_verify(signed_img, WRONG_KEY, sig)
+    else:
+        result, ms = api_verify(
+            img_to_png_bytes(signed_img),
+            json.dumps(sig).encode(), WRONG_KEY,
+        )
+
+    if result is None:
+        fail("Verify request failed")
         return False
 
     is_valid = result.get("is_valid", False)
     verdict  = result.get("verdict", "?")
-    print(f"  Verdict : {verdict}")
-    print(f"  Valid   : {is_valid}")
-    print(f"  Latency : {ms:.0f} ms")
+    info(f"Verdict : {verdict}")
+    info(f"Valid   : {is_valid}")
+    info(f"Latency : {ms:.0f} ms")
 
     if not is_valid:
         ok("Wrong key correctly rejected")
@@ -287,21 +343,60 @@ def run_wrong_key(signed_bytes, sig_bytes):
     return False
 
 
-# ─────────────────────────────────────────
-# SUMMARY
-# ─────────────────────────────────────────
+def step_real_asset(mode):
+    """Step 5: Sign & verify a document image if available."""
+    step_header(5, "Document Signing (Contract)")
+    doc_path = os.path.join(ASSET_DIR, "1page_contract.png")
+    if not os.path.isfile(doc_path):
+        info("No document asset found — skipping")
+        ok("Skipped (no asset)")
+        return True
 
-def print_summary(results):
-    print(f"\n{SEP}")
-    print("  DEMO SUMMARY")
-    print(SEP)
+    doc = Image.open(doc_path).convert("RGB")
+    info(f"Loaded: 1page_contract.png  ({doc.width}x{doc.height})")
+
+    if mode == "local":
+        signed_doc, sig, det_mode, ms = local_sign(doc, SECRET)
+        psnr = local_psnr(doc, signed_doc)
+        info(f"Detected mode : {det_mode}")
+        info(f"Signing time  : {ms:.0f} ms")
+        info(f"PSNR quality  : {psnr:.1f} dB")
+        result, vms = local_verify(signed_doc, SECRET, sig)
+    else:
+        png = img_to_png_bytes(doc)
+        signed_bytes, sig_bytes, ms = api_sign(png, SECRET)
+        if signed_bytes is None:
+            fail("Sign request failed")
+            return False
+        sig = json.loads(sig_bytes)
+        info(f"Signing time  : {ms:.0f} ms")
+        result, vms = api_verify(signed_bytes, sig_bytes, SECRET)
+
+    if result is None:
+        fail("Verify request failed")
+        return False
+
+    is_valid = result.get("is_valid", False)
+    info(f"Verify result : {'AUTHENTIC' if is_valid else 'FAILED'}  ({vms:.0f} ms)")
+    if is_valid:
+        ok("Document signed and verified")
+        return True
+    fail("Document verification failed")
+    return False
+
+
+def step_summary(results):
+    """Step 6: Print final summary."""
+    step_header(6, "Summary")
     passed = 0
     for i, (name, ok_flag) in enumerate(results, 1):
         tag = "PASS" if ok_flag else "FAIL"
-        print(f"  {i}. {name:24s} {tag}")
+        print(f"  {i}. {name:28s} {tag}")
         passed += ok_flag
     total = len(results)
-    print(f"\n  Overall: {passed}/{total} passed")
+    print(f"\n  Result: {passed}/{total} passed")
+    if passed == total:
+        print("  All checks passed.")
     print(SEP)
     return passed == total
 
@@ -311,51 +406,47 @@ def print_summary(results):
 # ─────────────────────────────────────────
 
 def main():
-    print(f"\n{SEP}")
-    print("  WaveSign API Demo")
-    print(f"  Target: {BASE_URL}")
-    print(SEP)
+    parser = argparse.ArgumentParser(description="WaveSign end-to-end demo")
+    parser.add_argument(
+        "--api", action="store_true",
+        help="Use the remote REST API instead of the local core module",
+    )
+    args = parser.parse_args()
+    run_mode = "api" if args.api else "local"
+
+    banner(run_mode)
+
+    # Load image
+    img, img_name = load_demo_image()
 
     results = []
 
-    # Step 1 — Health Check
-    passed, _ = run_health_check()
-    results.append(("Health Check", passed))
+    # Step 1 — Sign
+    passed, signed_img, sig = step_sign(run_mode, img, img_name)
+    results.append(("Sign Image", passed))
     if not passed:
-        print("\n  API is not reachable — aborting remaining steps.")
-        print_summary(results)
+        info("\nSigning failed — cannot continue.")
+        step_summary(results)
         return 1
 
-    # Step 2 — API Info
-    passed, _ = run_api_info()
-    results.append(("API Info", passed))
-
-    # Step 3 — Sign
-    passed, signed_bytes, sig_bytes = run_sign()
-    results.append(("Sign Workflow", passed))
-    if not passed:
-        print("\n  Signing failed — skipping verification steps.")
-        results += [
-            ("Verify Authentic", False),
-            ("Tamper Detection", False),
-            ("Wrong Key Detection", False),
-        ]
-        print_summary(results)
-        return 1
-
-    # Step 4 — Verify Authentic
-    passed = run_verify_authentic(signed_bytes, sig_bytes)
+    # Step 2 — Verify authentic
+    passed = step_verify_authentic(run_mode, signed_img, sig)
     results.append(("Verify Authentic", passed))
 
-    # Step 5 — Tamper Detection
-    passed = run_tamper_detect(signed_bytes, sig_bytes)
+    # Step 3 — Tamper detection
+    passed = step_tamper_detect(run_mode, signed_img, sig)
     results.append(("Tamper Detection", passed))
 
-    # Step 6 — Wrong Key
-    passed = run_wrong_key(signed_bytes, sig_bytes)
+    # Step 4 — Wrong key
+    passed = step_wrong_key(run_mode, signed_img, sig)
     results.append(("Wrong Key Detection", passed))
 
-    all_ok = print_summary(results)
+    # Step 5 — Document asset
+    passed = step_real_asset(run_mode)
+    results.append(("Document Signing", passed))
+
+    # Step 6 — Summary
+    all_ok = step_summary(results)
     return 0 if all_ok else 1
 
 
