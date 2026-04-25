@@ -6,6 +6,23 @@ Sign any image or PDF with an invisible signature. Share it. Verify it later —
 
 ---
 
+**For Creators**
+
+You put work online. Within hours it's screenshotted, reposted, cropped, and claimed by someone else. Metadata is stripped the moment a file touches any platform. Watermarks get painted over.
+
+WaveSign takes a different approach: the signature is inside the image, not next to it. It's invisible — your audience sees your work, not a watermark. But it's permanent — anyone who alters the file, even by a single pixel, breaks the signature.
+
+What this means in practice:
+
+* Photographers & illustrators — Sign before you post. If your image appears elsewhere, you can prove your version is the original.
+* Contract & document workflows — Sign a PDF before sending. If the other party changes a number, a date, or a clause, verification fails.
+* AI artists — Prove your exported image hasn't been modified since generation. Establish a chain of authenticity from the moment of creation.
+* Journalists & researchers — Distribute evidence photos with a verifiable chain: any edit after signing is detected.
+
+No visible watermark. No metadata that platforms strip. No blockchain. Just upload, set a secret key, and download your signed file. Verify anytime with the same key.
+
+---
+
 ## Try It
 
 | | |
